@@ -31,10 +31,11 @@ export const create = new Command()
             ? "yarn dlx"
             : "npx"
 
-    const tmpCwd = "shadcnext"
+    let tmpCwd = "shadcnext"
 
     try {
       await access("package.json", constants.F_OK)
+
       const { stdout: gitignore } = await execa("grep", [
         tmpCwd,
         ".gitignore",
@@ -44,12 +45,13 @@ export const create = new Command()
         spinner.info(`adding ${tmpCwd} to .gitignore...`)
         await appendFile(".gitignore", `\n${tmpCwd}/\n`)
       }
-    } catch {
-      spinner.info("new project detected.")
-    }
 
-    await execa("rm", ["-rf", tmpCwd])
-    await execa("mkdir", ["-p", tmpCwd])
+      await execa("rm", ["-rf", tmpCwd])
+      await execa("mkdir", ["-p", tmpCwd])
+    } catch {
+      const { stdout: ls } = await execa("ls", ["-A"])
+      if (!ls) tmpCwd = "."
+    }
 
     const execaOpts = { cwd: tmpCwd }
     spinner.start("creating next.js project...")
@@ -83,7 +85,7 @@ export const create = new Command()
     await execa(pm.execute, ["@tailwindcss/upgrade@next", "--force"], execaOpts)
     spinner.succeed("tailwindcss upgraded to v4.")
 
-    const cleanup = [".git", "node_modules"]
+    const cleanup = ["node_modules"]
 
     spinner.start("cleaning up...")
     await execa("rm", ["-rf", ...cleanup], execaOpts)

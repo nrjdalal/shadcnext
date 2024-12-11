@@ -1,4 +1,5 @@
-import { appendFile } from "fs/promises"
+import { constants } from "fs"
+import { access, appendFile } from "fs/promises"
 import { Command } from "commander"
 import { execa } from "execa"
 import ora from "ora"
@@ -10,7 +11,7 @@ export const create = new Command()
   .action(async () => {
     const spinner = ora("detecting package manager...").start()
 
-    const pm = (await detect()) as {
+    let pm = (await detect()) as {
       name: string
       agent: string
       execute: string
@@ -18,7 +19,7 @@ export const create = new Command()
 
     if (!pm) {
       spinner.fail("package manager not detected.")
-      process.exit(1)
+      pm = { name: "npm", agent: "npm", execute: "npx" }
     }
 
     pm.execute =
@@ -32,14 +33,19 @@ export const create = new Command()
 
     const tmpCwd = "shadcnext"
 
-    const { stdout: gitignore } = await execa("grep", [
-      tmpCwd,
-      ".gitignore",
-    ]).catch(() => ({ stdout: "false" }))
+    try {
+      await access("package.json", constants.F_OK)
+      const { stdout: gitignore } = await execa("grep", [
+        tmpCwd,
+        ".gitignore",
+      ]).catch(() => ({ stdout: "false" }))
 
-    if (gitignore === "false") {
-      spinner.info(`adding ${tmpCwd} to .gitignore...`)
-      await appendFile(".gitignore", `\n${tmpCwd}/\n`)
+      if (gitignore === "false") {
+        spinner.info(`adding ${tmpCwd} to .gitignore...`)
+        await appendFile(".gitignore", `\n${tmpCwd}/\n`)
+      }
+    } catch {
+      spinner.info("new project detected.")
     }
 
     await execa("rm", ["-rf", tmpCwd])

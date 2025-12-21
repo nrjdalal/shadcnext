@@ -35,7 +35,7 @@
     "shadcnext": "./dist/index.js"
   },
   "dependencies": {
-    "commander": "^12.1.0",
+    "commander": "^14.0.0",
     "execa": "^9.5.2",
     "ora": "^8.1.1",
     "package-manager-detector": "^0.2.7"
